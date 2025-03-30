@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retrait Waripay</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            color: #333;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 100%;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            color: #1436a5;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .input-group i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #1436a5;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px 15px 12px 45px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        select.input-field {
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: #1436a5;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .error-message {
+            color: #dc3545;
+            text-align: center;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .success-message {
+            color: #28a745;
+            text-align: center;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .loading {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Styles pour les modals */
+        .modal {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 -2px 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1436a5;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #777;
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            border: 1px solid #eee;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        .info-value {
+            font-weight: bold;
+            color: #1436a5;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+
+        .modal-overlay.active {
+            display: block;
+        }
+
+        /* Style pour le modal de succès */
+        .success-modal {
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        .success-icon {
+            font-size: 60px;
+            color: #f39c12;
+            margin-bottom: 20px;
+            animation: bounce 1s infinite alternate;
+        }
+
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-10px); }
+        }
+
+        .success-message-modal {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        /* Style pour l'historique */
+        .history-section {
+            margin-top: 30px;
+        }
+
+        .history-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #1436a5;
+           
+        }
+
+        .history-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-amount {
+            font-weight: bold;
+            color: #1436a5;
+        }
+
+        .history-date {
+            font-size: 12px;
+            color: #777;
+        }
+
+        .history-status {
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .logo {
+          display: block;
+          margin: 0 auto 20px;
+          width: 100px;
+          filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.2));
+      }
+    </style>
+</head>
+<body>
+    <div class="container">
+      <img src="https://www2.0zz0.com/2025/03/13/18/485189406.png" alt="Waripay Logo" class="logo">
+        <h2>Retrait</h2>
+        <div class="input-group">
+          <i class="fas fa-money-bill"></i>
+          <input type="number" id="amount" class="input-field" placeholder="Montant à retirer" required>
+        </div>
+
+        <div class="input-group">
+            <i class="fas fa-sim-card"></i>
+            <select id="operator" class="input-field" required>
+                <option value="" disabled selected>Opérateur de réception</option>
+                <option value="Orange Money">Orange Money</option>
+                <option value="Moov Money">Moov Money</option>
+                <option value="Telecel Money">Telecel Money</option>
+                <option value="Sank Money">Sank Money</option>
+                <option value="Coris Money">Coris Money</option>
+                <option value="Wave">Wave</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <i class="fas fa-phone"></i>
+            <input type="tel" id="recipientPhone" class="input-field" placeholder="Numéro de réception" required>
+        </div>
+
+        <div class="input-group">
+            <i class="fas fa-user"></i>
+            <input type="text" id="accountNumber" class="input-field" placeholder="Votre numéro Waripay" required>
+        </div>
+
+        <div class="input-group">
+            <i class="fas fa-lock"></i>
+            <input type="password" id="password" class="input-field" placeholder="Votre code secret" required>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+
+        <button class="btn btn-primary" id="verifyBtn" onclick="verifyAccount()">
+            <span id="verifyBtnText">Vérifier le solde</span>
+        </button>
+
+        <!-- Section Historique -->
+        <div class="history-section">
+            <div class="history-title">Historique des transactions</div>
+            <div class="history-list" id="historyList">
+                <!-- Les transactions seront ajoutées ici dynamiquement -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pour la confirmation de retrait -->
+    <div class="modal-overlay" id="modalOverlay"></div>
+    <div class="modal" id="operationModal">
+        <div class="modal-header">
+        
+            <div class="modal-title">Confirmation de retrait</div>
+            <button class="close-modal" onclick="closeModal()">&times;</button>
+        </div>
+
+        <div class="info-box" id="balanceInfo">
+            <div class="info-row">
+                <span class="info-label">Solde disponible:</span>
+                <span class="info-value" id="currentBalance">0 CFA</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Frais (2%):</span>
+                <span class="info-value" id="feeAmount">0 CFA</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Total à débiter:</span>
+                <span class="info-value" id="totalAmount">0 CFA</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Nouveau solde:</span>
+                <span class="info-value" id="newBalance">0 CFA</span>
+            </div>
+        </div>
+
+        <button class="btn btn-secondary" id="confirmBtn" onclick="confirmWithdrawal()">
+            <span id="confirmBtnText">Confirmer le retrait</span>
+        </button>
+    </div>
+
+    <!-- Modal pour le message de succès -->
+    <div class="modal" id="successModal">
+        <div class="success-modal">
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="success-message-modal" id="successMessageModal"></div>
+            <button class="btn btn-success" onclick="closeSuccessModal()">
+                <i class="fas fa-check"></i> Fermer
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // URLs des APIs
+        const AUTH_API_URL = 'https://script.google.com/macros/s/AKfycbx1XNzVxhVUa81Sdch5SFBS0-WC6UmZRJSGjDXNt6w876pIv5P8W1DLBZdCVt3t_3nh/exec';
+        const WITHDRAWAL_API_URL = 'https://script.google.com/macros/s/AKfycbwwPGzkRSzV67ezfWKDJ6BbIJUiMmACCo44Bbe0sUzLTmlcpshIViJo-LIr3B1J-5lVXQ/exec';
+        const HISTORY_API_URL = 'https://script.google.com/macros/s/AKfycbwwPGzkRSzV67ezfWKDJ6BbIJUiMmACCo44Bbe0sUzLTmlcpshIViJo-LIr3B1J-5lVXQ/exec?action=getHistory';
+
+        // Variables globales
+        let userBalance = 0;
+        let withdrawalFee = 0;
+        let totalAmount = 0;
+
+        // Charger l'historique au démarrage
+        document.addEventListener('DOMContentLoaded', function() {
+            loadHistory();
+        });
+
+        // Charger l'historique des transactions
+        async function loadHistory() {
+            try {
+                const accountNumber = document.getElementById('accountNumber').value;
+                if (!accountNumber) return;
+
+                const response = await fetch(`${HISTORY_API_URL}&phone=${accountNumber}`);
+                if (!response.ok) throw new Error('Erreur réseau');
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    displayHistory(data.transactions);
+                }
+            } catch (error) {
+                console.error('Erreur lors du chargement de l\'historique:', error);
+            }
+        }
+
+        // Afficher l'historique des transactions
+        function displayHistory(transactions) {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+
+            if (transactions.length === 0) {
+                historyList.innerHTML = '<div style="text-align: center; color: #777; padding: 20px;">Aucune transaction récente</div>';
+                return;
+            }
+
+            transactions.slice(0, 5).forEach(transaction => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+
+                item.innerHTML = `
+                    <div>
+                        <div>${transaction.operator}</div>
+                        <div class="history-date">${new Date(transaction.date).toLocaleString()}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="history-amount">-${transaction.amount} CFA</div>
+                        <div class="history-status status-success">${transaction.status}</div>
+                    </div>
+                `;
+
+                historyList.appendChild(item);
+            });
+        }
+
+        // Calcul des frais en temps réel
+        document.getElementById('amount').addEventListener('input', function() {
+            const amount = parseFloat(this.value) || 0;
+            withdrawalFee = amount * 0.02;
+            totalAmount = amount + withdrawalFee;
+
+            document.getElementById('feeAmount').textContent = withdrawalFee.toFixed(2) + ' CFA';
+            document.getElementById('totalAmount').textContent = totalAmount.toFixed(2) + ' CFA';
+
+            // Calcul du nouveau solde prévisionnel
+            if (userBalance > 0) {
+                const newBalance = userBalance - totalAmount;
+                document.getElementById('newBalance').textContent = newBalance.toFixed(2) + ' CFA';
+                document.getElementById('newBalance').style.color = newBalance < 0 ? '#dc3545' : '#28a745';
+            }
+        });
+
+        // Fonction pour ouvrir le modal de confirmation
+        function openModal() {
+            document.getElementById('modalOverlay').classList.add('active');
+            document.getElementById('operationModal').style.display = 'block';
+            setTimeout(() => {
+                document.getElementById('operationModal').classList.add('active');
+            }, 10);
+        }
+
+        // Fonction pour ouvrir le modal de succès
+        function openSuccessModal(message) {
+            document.getElementById('successMessageModal').textContent = message;
+            document.getElementById('modalOverlay').classList.add('active');
+            document.getElementById('successModal').style.display = 'block';
+            setTimeout(() => {
+                document.getElementById('successModal').classList.add('active');
+            }, 10);
+        }
+
+        // Fonction pour fermer les modals
+        function closeModal() {
+            document.getElementById('operationModal').classList.remove('active');
+            document.getElementById('modalOverlay').classList.remove('active');
+            setTimeout(() => {
+                document.getElementById('operationModal').style.display = 'none';
+            }, 300);
+        }
+
+        function closeSuccessModal() {
+            document.getElementById('successModal').classList.remove('active');
+            document.getElementById('modalOverlay').classList.remove('active');
+            setTimeout(() => {
+                document.getElementById('successModal').style.display = 'none';
+                window.location.reload(); // Recharger la page pour actualiser
+            }, 300);
+        }
+
+        // Fonction pour vérifier le compte et le solde
+        async function verifyAccount() {
+            const accountNumber = document.getElementById('accountNumber').value;
+            const password = document.getElementById('password').value;
+
+            if (!accountNumber || !password) {
+                showError('Veuillez vérifier votre numéro WariPay et votre code secret');
+                return;
+            }
+
+            showLoading('verifyBtn', true);
+
+            try {
+                // 1. Vérification des identifiants via l'API d'authentification
+                const authResponse = await fetch(`${AUTH_API_URL}?action=login&phone=${accountNumber}&password=${password}`);
+
+                if (!authResponse.ok) throw new Error('Erreur réseau lors de la vérification');
+
+                const authData = await authResponse.json();
+
+                if (authData.status !== 'success') {
+                    throw new Error(authData.message || 'Identifiants incorrects');
+                }
+
+                // 2. Si authentification réussie, récupération du solde
+                userBalance = parseFloat(authData.user.balance);
+                updateBalanceInfo();
+
+                // 3. Vérification du solde 
+                if (userBalance >= totalAmount) {
+                    openModal();
+                } else {
+                    showError(`Solde insuffisant. Il vous manque ${(totalAmount - userBalance).toFixed(2)} CFA`);
+                }
+            } catch (error) {
+                showError(error.message || 'Erreur lors de la vérification');
+                console.error('Erreur:', error);
+            } finally {
+                showLoading('verifyBtn', false);
+            }
+        }
+
+        // Fonction pour mettre à jour les informations de solde
+        function updateBalanceInfo() {
+            document.getElementById('currentBalance').textContent = userBalance.toFixed(2) + ' CFA';
+
+            const amount = parseFloat(document.getElementById('amount').value) || 0;
+            const newBalance = userBalance - (amount + (amount * 0.02));
+
+            document.getElementById('newBalance').textContent = newBalance.toFixed(2) + ' CFA';
+            document.getElementById('newBalance').style.color = newBalance < 0 ? '#dc3545' : '#28a745';
+        }
+
+        // Fonction pour confirmer le retrait
+        async function confirmWithdrawal() {
+            const operator = document.getElementById('operator').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const recipientPhone = document.getElementById('recipientPhone').value;
+            const accountNumber = document.getElementById('accountNumber').value;
+            const password = document.getElementById('password').value;
+
+            if (!operator || !amount || !recipientPhone) {
+                showError('Veuillez remplir tous les champs');
+                return;
+            }
+
+            showLoading('confirmBtn', true);
+
+            try {
+                // 1. D'abord vérifier à nouveau le solde
+                const authResponse = await fetch(`${AUTH_API_URL}?action=login&phone=${accountNumber}&password=${password}`);
+
+                if (!authResponse.ok) throw new Error('Erreur réseau lors de la vérification du solde');
+
+                const authData = await authResponse.json();
+
+                if (authData.status !== 'success') {
+                    throw new Error(authData.message || 'Identifiants incorrects');
+                }
+
+                const currentBalance = parseFloat(authData.user.balance);
+                const totalToDebit = amount + (amount * 0.02);
+
+                if (currentBalance < totalToDebit) {
+                    throw new Error('Solde insuffisant. Veuillez rafraîchir votre solde.');
+                }
+
+                // 2. Ensuite effectuer le retrait
+                const formData = new URLSearchParams();
+                formData.append('action', 'processWithdrawal');
+                formData.append('phone', accountNumber);
+                formData.append('amount', amount);
+                formData.append('recipientPhone', recipientPhone);
+                formData.append('operator', operator);
+                formData.append('fee', withdrawalFee);
+                formData.append('password', password);
+
+                const response = await fetch(WITHDRAWAL_API_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error('Erreur réseau lors du retrait');
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    // 3. Mettre à jour le solde affiché
+                    userBalance = currentBalance - totalToDebit;
+
+                    // Afficher le modal de succès
+                    closeModal();
+                    openSuccessModal(`Retrait réussi! ${amount} CFA envoyés à ${recipientPhone}. Nouveau solde: ${userBalance.toFixed(2)} CFA`);
+
+                    // Recharger l'historique
+                    loadHistory();
+                } else {
+                    throw new Error(data.message || 'Erreur lors du retrait');
+                }
+            } catch (error) {
+                showError(error.message || 'Une erreur est survenue');
+                console.error('Erreur:', error);
+            } finally {
+                showLoading('confirmBtn', false);
+            }
+        }
+
+        // Fonctions utilitaires
+        function showLoading(buttonId, show) {
+            const btn = document.getElementById(buttonId);
+            const textSpan = document.getElementById(`${buttonId}Text`);
+
+            btn.disabled = show;
+            if (show) {
+                textSpan.innerHTML = '<i class="fas fa-spinner loading"></i> Traitement...';
+            } else {
+                if (buttonId === 'verifyBtn') {
+                    textSpan.textContent = 'Vérifier le solde';
+                } else {
+                    textSpan.textContent = 'Confirmer le retrait';
+                }
+            }
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            const successEl = document.getElementById('successMessage');
+            successEl.textContent = message;
+            successEl.style.display = 'block';
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        function resetForm() {
+            document.getElementById('amount').value = '';
+            document.getElementById('recipientPhone').value = '';
+            withdrawalFee = 0;
+            totalAmount = 0;
+        }
+    </script>
+</body> 
+</html>
