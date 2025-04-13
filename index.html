@@ -278,7 +278,115 @@
           margin: 0 auto 20px;
           width: 100px;
           filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.2));
-      }
+        }
+
+        /* Nouveaux styles ajoutés */
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .input-field {
+                padding: 10px 15px 10px 40px;
+                font-size: 14px;
+            }
+            
+            .btn {
+                padding: 10px;
+            }
+        }
+
+        .input-field:valid {
+            border-color: #28a745;
+        }
+
+        .input-field:invalid {
+            border-color: #dc3545;
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            margin-left: 5px;
+            color: #1436a5;
+            cursor: help;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        option[value="Orange Money"] { background-color: #ff8800; color: white; }
+        option[value="Moov Money"] { background-color: #00aaff; color: white; }
+        option[value="Telecel Money"] { background-color: #ff0000; color: white; }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .valid-pulse {
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+
+        .animate-shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        .invalid-input {
+            border-color: #dc3545 !important;
+        }
+
+        #phoneHelp {
+            font-size: 12px;
+            color: #666;
+            margin-top: -10px;
+            margin-bottom: 10px;
+            display: none;
+        }
+
+        #liveFee {
+            font-weight: bold;
+            color: #1436a5;
+        }
+        /* Style pour les champs désactivés */
+.input-field:disabled {
+    background-color: #f8f9fa;
+    cursor: not-allowed;
+}
+
+/* Style pour le message de tentative */
+.attempt-warning {
+    color: #dc3545;
+    font-weight: bold;
+    text-align: center;
+    margin: 10px 0;
+}
     </style>
 </head>
 <body>
@@ -287,7 +395,10 @@
         <h2>Retrait</h2>
         <div class="input-group">
           <i class="fas fa-money-bill"></i>
-          <input type="number" id="amount" class="input-field" placeholder="Montant à retirer" required>
+          <input type="number" id="amount" class="input-field" placeholder="Montant à retirer (min 500 CFA)" required min="500">
+        </div>
+        <div style="text-align: right; font-size: 12px; color: #666; margin-top: -10px; margin-bottom: 10px;">
+            Frais: <span id="liveFee">0 CFA</span> (2%)
         </div>
 
         <div class="input-group">
@@ -305,8 +416,9 @@
 
         <div class="input-group">
             <i class="fas fa-phone"></i>
-            <input type="tel" id="recipientPhone" class="input-field" placeholder="Numéro de réception" required>
+            <input type="tel" id="recipientPhone" class="input-field" placeholder="Numéro de réception (ex: 05 12 34 56 78)" required>
         </div>
+        <small id="phoneHelp" class="form-text text-muted">Format: 05 12 34 56 78 ou 512345678 (8 à 10 chiffres)</small>
 
         <div class="input-group">
             <i class="fas fa-user"></i>
@@ -317,6 +429,9 @@
             <i class="fas fa-lock"></i>
             <input type="password" id="password" class="input-field" placeholder="Votre code secret" required>
         </div>
+        <small id="passwordHelp" style="font-size: 12px; color: #666; display: block; margin-top: -10px; margin-bottom: 10px;">
+            Après 3 tentatives échouées, votre compte sera temporairement bloqué.
+        </small>
 
         <div class="error-message" id="errorMessage"></div>
         <div class="success-message" id="successMessage"></div>
@@ -338,7 +453,6 @@
     <div class="modal-overlay" id="modalOverlay"></div>
     <div class="modal" id="operationModal">
         <div class="modal-header">
-        
             <div class="modal-title">Confirmation de retrait</div>
             <button class="close-modal" onclick="closeModal()">&times;</button>
         </div>
@@ -347,6 +461,18 @@
             <div class="info-row">
                 <span class="info-label">Solde disponible:</span>
                 <span class="info-value" id="currentBalance">0 CFA</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Bénéficiaire:</span>
+                <span class="info-value" id="recipientDisplay">--</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Opérateur:</span>
+                <span class="info-value" id="operatorDisplay">--</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Montant à envoyer:</span>
+                <span class="info-value" id="sendAmount">0 CFA</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Frais (2%):</span>
@@ -383,8 +509,8 @@
     <script>
         // URLs des APIs
         const AUTH_API_URL = 'https://script.google.com/macros/s/AKfycbx1XNzVxhVUa81Sdch5SFBS0-WC6UmZRJSGjDXNt6w876pIv5P8W1DLBZdCVt3t_3nh/exec';
-        const WITHDRAWAL_API_URL = 'https://script.google.com/macros/s/AKfycbwwPGzkRSzV67ezfWKDJ6BbIJUiMmACCo44Bbe0sUzLTmlcpshIViJo-LIr3B1J-5lVXQ/exec';
-        const HISTORY_API_URL = 'https://script.google.com/macros/s/AKfycbwwPGzkRSzV67ezfWKDJ6BbIJUiMmACCo44Bbe0sUzLTmlcpshIViJo-LIr3B1J-5lVXQ/exec?action=getHistory';
+        const WITHDRAWAL_API_URL = 'https://script.google.com/macros/s/AKfycbzMHGPM2QJit1k99BvtHOjTBCt35jDCVnbhQME-7RmwZRUx3p79BOe-U3ZfVjywl2OBaw/exec';
+        const HISTORY_API_URL = 'https://script.google.com/macros/s/AKfycbzMHGPM2QJit1k99BvtHOjTBCt35jDCVnbhQME-7RmwZRUx3p79BOe-U3ZfVjywl2OBaw/exec?action=getHistory';
 
         // Variables globales
         let userBalance = 0;
@@ -394,6 +520,108 @@
         // Charger l'historique au démarrage
         document.addEventListener('DOMContentLoaded', function() {
             loadHistory();
+            
+            // Détecter les changements sur le montant pour calculer les frais
+            document.getElementById('amount').addEventListener('input', calculateFees);
+        });
+
+        // Fonction pour calculer les frais en temps réel
+        function calculateFees() {
+            const amount = parseFloat(document.getElementById('amount').value) || 0;
+            withdrawalFee = amount * 0.02;
+            totalAmount = amount + withdrawalFee;
+
+            // Mettre à jour l'affichage
+            document.getElementById('liveFee').textContent = withdrawalFee.toFixed(2) + ' CFA';
+            document.getElementById('feeAmount').textContent = withdrawalFee.toFixed(2) + ' CFA';
+            document.getElementById('totalAmount').textContent = totalAmount.toFixed(2) + ' CFA';
+            document.getElementById('sendAmount').textContent = amount.toFixed(2) + ' CFA';
+
+            // Calcul du nouveau solde prévisionnel
+            if (userBalance > 0) {
+                const newBalance = userBalance - totalAmount;
+                document.getElementById('newBalance').textContent = newBalance.toFixed(2) + ' CFA';
+                document.getElementById('newBalance').style.color = newBalance < 0 ? '#dc3545' : '#28a745';
+            }
+        }
+
+        // Fonction pour détecter l'opérateur
+        function detectOperator(phone) {
+            // Supprimer les espaces et caractères non numériques
+            const cleanedPhone = phone.replace(/\D/g, '');
+            
+            // Vérifier si le numéro est assez long pour analyse
+            if (cleanedPhone.length < 2) return;
+
+            // Extraire les 2 premiers chiffres
+            const prefix = cleanedPhone.substring(0, 2);
+            
+            // Mapping des opérateurs avec leurs préfixes
+            const operatorPrefixes = {
+                "Orange Money": ["04", "05", "06", "07", "54", "55", "56", "57", "64", "65", "66", "67", "74", "75", "76", "77"],
+                "Moov Money": ["01", "02", "03", "50", "51", "52", "53", "60", "61", "62", "63", "70", "71", "72", "73"],
+                "Telecel Money": ["08", "09", "58", "59", "68", "69", "78", "79"]
+            };
+
+            // Trouver l'opérateur correspondant
+            for (const [operator, prefixes] of Object.entries(operatorPrefixes)) {
+                if (prefixes.includes(prefix)) {
+                    document.getElementById('operator').value = operator;
+                    document.getElementById('operatorDisplay').textContent = operator;
+                    
+                    // Ajouter un feedback visuel
+                    showOperatorFeedback(operator);
+                    return;
+                }
+            }
+            
+            // Si aucun opérateur trouvé
+            showOperatorFeedback(null);
+        }
+
+        // Fonction pour afficher un feedback visuel
+        function showOperatorFeedback(operator) {
+            const phoneInput = document.getElementById('recipientPhone');
+            const operatorSelect = document.getElementById('operator');
+            
+            if (operator) {
+                phoneInput.style.borderColor = '#28a745';
+                operatorSelect.style.borderColor = '#28a745';
+                document.getElementById('phoneHelp').style.display = 'none';
+                
+                // Ajouter une icône de validation
+                if (!document.getElementById('operator-check')) {
+                    const checkIcon = document.createElement('i');
+                    checkIcon.id = 'operator-check';
+                    checkIcon.className = 'fas fa-check-circle';
+                    checkIcon.style.color = '#28a745';
+                    checkIcon.style.marginLeft = '10px';
+                    operatorSelect.parentNode.appendChild(checkIcon);
+                }
+            } else {
+                phoneInput.style.borderColor = '#dc3545';
+                document.getElementById('phoneHelp').style.display = 'block';
+            }
+        }
+
+        // Validation du format de numéro
+        function validatePhoneNumber(phone) {
+            const regex = /^(0|5|6|7)[0-9]{7,8}$/; // Format général pour la Côte d'Ivoire
+            return regex.test(phone.replace(/\D/g, ''));
+        }
+
+        // Écouteur d'événement pour la détection automatique
+        document.getElementById('recipientPhone').addEventListener('input', function() {
+            detectOperator(this.value);
+            
+            // Masquer le numéro dans la prévisualisation
+            if (this.value.length > 4) {
+                const maskedNumber = this.value.substring(0, 2) + '****' + this.value.substring(this.value.length - 2);
+                document.getElementById('recipientDisplay').textContent = maskedNumber;
+            }
+            
+            // Mettre à jour l'affichage de l'opérateur
+            document.getElementById('operatorDisplay').textContent = document.getElementById('operator').value;
         });
 
         // Charger l'historique des transactions
@@ -443,23 +671,6 @@
             });
         }
 
-        // Calcul des frais en temps réel
-        document.getElementById('amount').addEventListener('input', function() {
-            const amount = parseFloat(this.value) || 0;
-            withdrawalFee = amount * 0.02;
-            totalAmount = amount + withdrawalFee;
-
-            document.getElementById('feeAmount').textContent = withdrawalFee.toFixed(2) + ' CFA';
-            document.getElementById('totalAmount').textContent = totalAmount.toFixed(2) + ' CFA';
-
-            // Calcul du nouveau solde prévisionnel
-            if (userBalance > 0) {
-                const newBalance = userBalance - totalAmount;
-                document.getElementById('newBalance').textContent = newBalance.toFixed(2) + ' CFA';
-                document.getElementById('newBalance').style.color = newBalance < 0 ? '#dc3545' : '#28a745';
-            }
-        });
-
         // Fonction pour ouvrir le modal de confirmation
         function openModal() {
             document.getElementById('modalOverlay').classList.add('active');
@@ -501,42 +712,83 @@
         async function verifyAccount() {
             const accountNumber = document.getElementById('accountNumber').value;
             const password = document.getElementById('password').value;
-
+            const amount = parseFloat(document.getElementById('amount').value);
+            const operator = document.getElementById('operator').value;
+            const recipientPhone = document.getElementById('recipientPhone').value;
+        
+            // Validation des champs
             if (!accountNumber || !password) {
                 showError('Veuillez vérifier votre numéro WariPay et votre code secret');
                 return;
             }
-
+        
+            // Vérification du nombre de tentatives
+            if (getAttempts() >= 3) {
+                showError('Trop de tentatives échouées. Veuillez réessayer dans 1 minutes.');
+                disableForm();
+                return;
+            }
+        
             showLoading('verifyBtn', true);
-
+        
             try {
-                // 1. Vérification des identifiants via l'API d'authentification
                 const authResponse = await fetch(`${AUTH_API_URL}?action=login&phone=${accountNumber}&password=${password}`);
-
+        
                 if (!authResponse.ok) throw new Error('Erreur réseau lors de la vérification');
-
+        
                 const authData = await authResponse.json();
-
+        
                 if (authData.status !== 'success') {
-                    throw new Error(authData.message || 'Identifiants incorrects');
+                    // Incrémenter le compteur de tentatives
+                    incrementAttempts();
+                    
+                    // Message d'erreur précis
+                    if (authData.message.includes('password')) {
+                        throw new Error('Code secret incorrect');
+                    } else if (authData.message.includes('phone')) {
+                        throw new Error('Numéro Waripay incorrect');
+                    } else {
+                        throw new Error(authData.message || 'Identifiants incorrects');
+                    }
                 }
-
-                // 2. Si authentification réussie, récupération du solde
+        
+                // Réinitialiser les tentatives en cas de succès
+                resetAttempts();
+                
                 userBalance = parseFloat(authData.user.balance);
                 updateBalanceInfo();
-
-                // 3. Vérification du solde 
+        
                 if (userBalance >= totalAmount) {
                     openModal();
                 } else {
                     showError(`Solde insuffisant. Il vous manque ${(totalAmount - userBalance).toFixed(2)} CFA`);
                 }
             } catch (error) {
-                showError(error.message || 'Erreur lors de la vérification');
+                const remainingAttempts = 3 - getAttempts();
+                if (remainingAttempts > 0) {
+                    showError(`${error.message} (${remainingAttempts} tentative(s) restante(s))`);
+                } else {
+                    showError(error.message);
+                }
                 console.error('Erreur:', error);
             } finally {
                 showLoading('verifyBtn', false);
             }
+        }
+
+        // Fonction pour gérer les erreurs de numéro
+        function handleOperatorError() {
+            const phoneInput = document.getElementById('recipientPhone');
+            phoneInput.classList.add('invalid-input');
+            
+            // Afficher l'aide
+            document.getElementById('phoneHelp').style.display = 'block';
+            
+            // Animation pour attirer l'attention
+            phoneInput.classList.add('animate-shake');
+            setTimeout(() => {
+                phoneInput.classList.remove('animate-shake');
+            }, 500);
         }
 
         // Fonction pour mettre à jour les informations de solde
@@ -661,6 +913,60 @@
             withdrawalFee = 0;
             totalAmount = 0;
         }
+        // Gestion des tentatives de connexion
+function getAttempts() {
+    const attempts = localStorage.getItem('loginAttempts');
+    const attemptTime = localStorage.getItem('loginAttemptTime');
+    
+    // Réinitialiser si plus de 1 minutes se sont écoulées
+    if (attemptTime && (Date.now() - attemptTime > 1 * 60 * 1000)) {
+        resetAttempts();
+        return 0;
+    }
+    
+    return attempts ? parseInt(attempts) : 0;
+}
+
+function incrementAttempts() {
+    const attempts = getAttempts() + 1;
+    localStorage.setItem('loginAttempts', attempts);
+    localStorage.setItem('loginAttemptTime', Date.now());
+    
+    if (attempts >= 3) {
+        disableForm();
+    }
+}
+
+function resetAttempts() {
+    localStorage.removeItem('loginAttempts');
+    localStorage.removeItem('loginAttemptTime');
+}
+
+function disableForm() {
+    const inputs = document.querySelectorAll('.input-field');
+    const buttons = document.querySelectorAll('.btn');
+    
+    inputs.forEach(input => {
+        input.disabled = true;
+        input.placeholder = 'Trop de tentatives - Réessayez plus tard';
+    });
+    
+    buttons.forEach(button => {
+        button.disabled = true;
+    });
+    
+    // Réactiver après 15 minutes
+    setTimeout(() => {
+        resetAttempts();
+        inputs.forEach(input => {
+            input.disabled = false;
+            input.placeholder = input.id === 'password' ? 'Votre code secret' : 'Saisie activée';
+        });
+        buttons.forEach(button => {
+            button.disabled = false;
+        });
+    }, 1 * 60 * 1000);
+}
     </script>
-</body> 
+</body>
 </html>
